@@ -13,24 +13,51 @@ use tui::{
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::Span,
-    widgets::{Block, Borders, Gauge},
+    widgets::{BarChart,Block, Borders, Gauge},
     Frame, Terminal,
 };
 
-struct App {
+struct App<'a> {
     progress1: u16,
     progress2: u16,
     progress3: f64,
     progress4: u16,
+    bardata: Vec<(&'a str, u64)>,
 }
 
-impl App {
-    fn new() -> App {
+impl<'a> App<'a> {
+    fn new() -> App<'a> {
         App {
             progress1: 0,
             progress2: 0,
             progress3: 0.45,
             progress4: 0,
+            bardata: vec![
+                ("B1", 9),
+                ("B2", 12),
+                ("B3", 5),
+                ("B4", 8),
+                ("B5", 2),
+                ("B6", 4),
+                ("B7", 5),
+                ("B8", 9),
+                ("B9", 14),
+                ("B10", 15),
+                ("B11", 1),
+                ("B12", 0),
+                ("B13", 4),
+                ("B14", 6),
+                ("B15", 4),
+                ("B16", 6),
+                ("B17", 4),
+                ("B18", 7),
+                ("B19", 13),
+                ("B20", 8),
+                ("B21", 11),
+                ("B22", 9),
+                ("B23", 3),
+                ("B24", 5),
+            ],
         }
     }
 
@@ -51,6 +78,8 @@ impl App {
         if self.progress4 > 100 {
             self.progress4 = 0;
         }
+        let value = self.bardata.pop().unwrap();
+        self.bardata.insert(0, value);
     }
 }
 
@@ -115,20 +144,43 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .margin(2)
         .constraints(
             [
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
+                Constraint::Percentage(50),
+                Constraint::Percentage(50),
             ]
             .as_ref(),
         )
         .split(f.size());
 
+    let gaugechunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Percentage(50),
+                Constraint::Percentage(50),
+            ]
+            .as_ref(),
+        )
+        .split(chunks[0]);
+
+    let barchunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Percentage(50),
+                Constraint::Percentage(50),
+            ]
+            .as_ref(),
+        )
+        .split(chunks[1]);
+
     let gauge = Gauge::default()
         .block(Block::default().title("Gauge1").borders(Borders::ALL))
         .gauge_style(Style::default().fg(Color::Yellow))
         .percent(app.progress1);
-    f.render_widget(gauge, chunks[0]);
+
+    f.render_widget(gauge, gaugechunks[0]);
 
     let label = format!("{}/100", app.progress2);
     let gauge = Gauge::default()
@@ -136,31 +188,29 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .gauge_style(Style::default().fg(Color::Magenta).bg(Color::Green))
         .percent(app.progress2)
         .label(label);
-    f.render_widget(gauge, chunks[1]);
 
-    let label = Span::styled(
-        format!("{:.2}%", app.progress3 * 100.0),
-        Style::default()
-            .fg(Color::Red)
-            .add_modifier(Modifier::ITALIC | Modifier::BOLD),
-    );
-    let gauge = Gauge::default()
-        .block(Block::default().title("Gauge3").borders(Borders::ALL))
-        .gauge_style(Style::default().fg(Color::Yellow))
-        .ratio(app.progress3)
-        .label(label)
-        .use_unicode(true);
-    f.render_widget(gauge, chunks[2]);
+    f.render_widget(gauge, gaugechunks[1]);
 
-    let label = format!("{}/100", app.progress2);
-    let gauge = Gauge::default()
-        .block(Block::default().title("Gauge4"))
-        .gauge_style(
+    let barchart = BarChart::default()
+        .block(Block::default().title("Data1").borders(Borders::ALL))
+        .data(&app.bardata)
+        .bar_width(9)
+        .bar_style(Style::default().fg(Color::Yellow))
+        .value_style(Style::default().fg(Color::Black).bg(Color::Yellow));
+    f.render_widget(barchart, barchunks[0]);
+
+    let barchart = BarChart::default()
+        .block(Block::default().title("Data2").borders(Borders::ALL))
+        .data(&app.bardata)
+        .bar_width(5)
+        .bar_gap(3)
+        .bar_style(Style::default().fg(Color::Green))
+        .value_style(
             Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::ITALIC),
-        )
-        .percent(app.progress4)
-        .label(label);
-    f.render_widget(gauge, chunks[3]);
+                .bg(Color::Green)
+                .add_modifier(Modifier::BOLD),
+        );
+    f.render_widget(barchart, barchunks[1]);
+
+    
 }
