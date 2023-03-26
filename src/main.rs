@@ -16,7 +16,6 @@ use tui::{
     widgets::{BarChart,Block, Borders, Gauge},
     Frame, Terminal,
 };
-
 struct App<'a> {
     progress1: u16,
     progress2: u16,
